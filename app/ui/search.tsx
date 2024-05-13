@@ -26,9 +26,9 @@ export default function Search({ placeholder }: { placeholder: string }) {
     (term !== '') ? params.set('query', term) : params.delete('query');
     const urlWithQuery = `${pathname}?${params.toString()}`
     replaceUrl(urlWithQuery)
-  }, [])
+  }, [pathname, replaceUrl, searchParams])
 
-  const deboundcedHandleSearch = useMemo(() => debounce(handleSearch, DEBOUNCE_MS), [])
+  const deboundcedHandleSearch = useMemo(() => debounce(handleSearch, DEBOUNCE_MS), [handleSearch])
 
   return (
     <div className="relative flex flex-1 flex-shrink-0">
