@@ -1,24 +1,31 @@
-import type { NextAuthConfig } from 'next-auth';
+import type { NextAuthConfig, Session } from 'next-auth';
+import { NextRequest } from 'next/server';
+
+type ProtectedRoutesCallbackParams = {
+    request: NextRequest;
+    auth: Session | null;
+}
+
+const protectedRoutesCallback = ({ auth, request: { nextUrl } }: ProtectedRoutesCallbackParams) => {
+    const isLoggedIn = !!auth?.user;
+    const isOnDashboard = nextUrl.pathname.startsWith('/dashboard')
+
+    if (isOnDashboard) {
+        if (isLoggedIn) return true; // true: stay on the current page
+        return false; // false: Redirect unauthenticated users to login page
+    } else if (isLoggedIn) {
+        const dashboardUrl = new URL('/dashboard', nextUrl)
+        return Response.redirect(dashboardUrl);
+    }
+    return true // true: stay on the current page
+}
 
 export const authConfig: NextAuthConfig = {
     pages: {
-        // https://nextjs.org/learn/dashboard-app/adding-authentication#adding-the-pages-option
-        signIn: '/login',
+        signIn: '/login', //the user will be redirected to this app's login page, rather than the NextAuth.js default page.
     },
     callbacks: {
-        authorized: ({ auth, request: { nextUrl } }) => {
-            const isLoggedIn = !!auth?.user;
-            const isOnDashboard = nextUrl.pathname.startsWith('/dashboard')
-            // console.log('isOnDashboard :: ', isOnDashboard)
-            // console.log('isLoggedIn :: ', isLoggedIn)
-            if (isOnDashboard) {
-                if (isLoggedIn) return true;
-                return false; // Redirect unauthenticated users to login page
-            } else if (isLoggedIn) {
-                return Response.redirect(new URL('/dashboard', nextUrl));
-            }
-            return true
-        },
+        authorized: protectedRoutesCallback, // Invoked when a user needs authorization, using Middleware.
     },
-    providers: [], // Add providers with an empty array for now
+    providers: [], // will be populated from @/app/auth.ts
 };

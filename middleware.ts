@@ -2,6 +2,10 @@ import NextAuth from 'next-auth';
 import { authConfig } from '@/auth.config';
 
 export default NextAuth(authConfig).auth;
+/**
+ * Adding auth to the Middleware is optional, but recommended to keep the user session alive.
+ * Authentication is done by the callbacks.authorized callback.
+ */
 
 export const config = {
     // https://nextjs.org/docs/app/building-your-application/routing/middleware#matcher

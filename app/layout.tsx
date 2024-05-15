@@ -12,3 +12,8 @@ export default function RootLayout({
     </html>
   );
 }
+
+/**
+Email: user@nextmail.com
+Password: 123456
+ */

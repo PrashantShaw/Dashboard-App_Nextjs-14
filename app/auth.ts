@@ -2,44 +2,38 @@ import NextAuth from 'next-auth';
 import { authConfig } from '@/auth.config';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
-import { User } from '@/app/lib/definitions';
-import { sql } from '@vercel/postgres';
+import { getUser } from '@/app/lib/data'
 import bcrypt from 'bcrypt'
 
-async function getUser(email: string): Promise<User | undefined> {
-    try {
-        const user = await sql<User>`SELECT * FROM users WHERE email=${email}`;
-        return user.rows[0];
-    } catch (err) {
-        console.error('Failed to fetch user:', err);
-        throw new Error('Failed to fetch user.');
+const authenticateLogin = async (
+    credentials: Partial<Record<string, unknown>>,
+    request: Request
+) => {
+    const parsedCredentials = z
+        .object({
+            email: z.string().email(),
+            password: z.string().min(6)
+        })
+        .safeParse(credentials);
+
+    if (parsedCredentials.success) {
+        const { email, password: enteredPassword } = parsedCredentials.data;
+        const user = await getUser(email);
+        if (!user) return null;
+
+        const isPasswordMatched = await bcrypt.compare(enteredPassword, user.password);
+        if (isPasswordMatched) return user;
     }
+
+    console.log('Invalid credentials');
+    return null;
 }
 
 export const { auth, signIn, signOut } = NextAuth({
     ...authConfig,
     providers: [
         Credentials({
-            authorize: async (credentials) => {
-                const parsedCredentials = z
-                    .object({
-                        email: z.string().email(),
-                        password: z.string().min(6)
-                    })
-                    .safeParse(credentials);
-
-                if (parsedCredentials.success) {
-                    const { email, password: enteredPassword } = parsedCredentials.data;
-                    const user = await getUser(email);
-                    if (!user) return null;
-
-                    const isPasswordMatched = await bcrypt.compare(enteredPassword, user.password);
-                    if (isPasswordMatched) return user;
-                }
-
-                console.log('Invalid credentials');
-                return null;
-            }
+            authorize: authenticateLogin //This method expects a User object to be returned for a successful login.
         }),
     ],
 });
